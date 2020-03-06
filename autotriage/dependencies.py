@@ -21,8 +21,8 @@ services = [
         "cray-meds"
         ]
 
-def validateHmsDependencies(host):
-    dbgPrint(dbgMed, "validateHmsDependencies on " + host)
+def validateHmsDependencies():
+    dbgPrint(dbgMed, "validateHmsDependencies")
     for svc in services:
         validateService(svc)
 

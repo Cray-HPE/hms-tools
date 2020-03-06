@@ -8,5 +8,5 @@ k8sClient = client.CoreV1Api()
 
 
 def getK8sClient():
-    dbgPrint(dbgMed, "initK8s")
+    dbgPrint(dbgMed, "getK8sClient")
     return k8sClient
