@@ -27,7 +27,7 @@ def main():
             help='Print the script version information and exit.')
     args = parser.parse_args()
 
-    if args.version is not None:
+    if args.version is True:
         script_dir = path.dirname(__file__)
         filename = ".version"
         with open(script_dir + "/" + filename, "r") as ver:

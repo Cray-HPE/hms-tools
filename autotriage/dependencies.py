@@ -6,7 +6,8 @@ from health import *
 from k8s import *
 
 services = [
-        "sma-cstream",
+        "cray-hms-hmcollector",
+        "cray-hms-pmdbd",
         "cray-hms-rts",
         "cray-tokens",
         "cray-vault",
