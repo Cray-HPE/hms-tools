@@ -6,9 +6,6 @@ from health import *
 from k8s import *
 
 services = [
-        "cray-hms-hmcollector",
-        "cray-hms-pmdbd",
-        "cray-hms-rts",
         "cray-tokens",
         "cray-vault",
         "cray-sls",
@@ -19,7 +16,10 @@ services = [
         "cray-ipxe",
         "cray-reds",
         "cray-bss",
-        "cray-meds"
+        "cray-meds",
+        "cray-hms-hmcollector",
+        "cray-hms-pmdbd",
+        "cray-hms-rts"
         ]
 
 def validateHmsDependencies():
