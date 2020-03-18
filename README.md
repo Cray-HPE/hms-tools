@@ -62,7 +62,7 @@ This tool uses the kubernetes and requests modules for python to communicate
 with the system to determine health status. This tool is designed to identify
 known issues and areas to dig in deeper. It is not designed to point out the
 exact error that is causing the current problem. There is some guidance provided
-that will be enahanced as we learn more about each error that we encounter.
+that will be enhanced as we learn more about each error that we encounter.
 
 Each triage module can be executed on it's own, or it can be called from the
 main driver program execute_triage.py. When executed from the driver program,
