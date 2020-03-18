@@ -59,7 +59,22 @@ total size is 22.07K  speedup is 3.60
 ## Autotriage utility
 
 This tool uses the kubernetes and requests modules for python to communicate
-with the system to determine health status.
+with the system to determine health status. This tool is designed to identify
+known issues and areas to dig in deeper. It is not designed to point out the
+exact error that is causing the current problem. There is some guidance provided
+that will be enhanced as we learn more about each error that we encounter.
+
+Each triage module can be executed on it's own, or it can be called from the
+main driver program execute_triage.py. When executed from the driver program,
+verbosity is off and you will only see **Not Healthy** messages. That can be
+changed using one or more -v options. When executed as an individual module,
+the verbosity is set to Low (a single -v) and cannot be changed on the command
+line.  This level of verbosity will show all **OK**, **Not Healthy**, and
+additional error information for each of the **Not Healthy** items.
+
+New triage modules can be written and added to the triageModules table in the
+execute_triage.py script. The triageModules get executed in the order they
+appear in the list.
 
 ```bash
 mug-ncn-w001:~ $ /tmp/hms-triage-tools/autotriage/execute_triage.py -h
@@ -73,8 +88,10 @@ optional arguments:
 ```
 
 Example base output. sma-cstream is included for debug purposes. Mug is River
-only so cray-meds is not running, which is OK. x3000c0s7b0 is ncn-w001 which is
-only available on the CAN right now for Mug.
+only so cray-meds is not running, which is OK. And cray-hms-rts is expected to
+be initializing at this stage until SLS is populated with information it needs
+to do its job. x3000c0s7b0 is ncn-w001 which is only available on the CAN right
+now for Mug.
 
 ```bash
 mug-ncn-w001:~ $ /tmp/hms-triage-tools/autotriage/execute_triage.py
