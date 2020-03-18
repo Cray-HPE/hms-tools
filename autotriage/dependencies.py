@@ -1,3 +1,4 @@
+#!/usr/bin/python3
 
 from subprocess import Popen, PIPE
 
@@ -96,16 +97,36 @@ def validateService(svc):
         printExtraHealth("Service", "Not running on the system")
 
     for p in podArray:
-        if p.status.phase in ["Running", "Succeeded"]:
-            printOK(p.metadata.name)
+        idx = 0
+        if p.status.conditions is not None:
+            while idx < len(p.status.conditions):
+                cond = p.status.conditions[idx]
+                if cond.type == "Ready":
+                    if (cond.status == "True" or
+                        (cond.status == "False" and
+                         cond.reason == "PodCompleted")):
+                        printOK(p.metadata.name)
+                    else:
+                        printNotHealthy(p.metadata.name)
+                        if getDbgLevel() >= dbgLow:
+                            if p.status.init_container_statuses is not None:
+                                for c in p.status.init_container_statuses:
+                                    if c.state.waiting is not None:
+                                        printExtraHealth(c.name, c.state.waiting.reason)
+                            for c in p.status.container_statuses:
+                                if c.ready is False:
+                                    if (c.state.terminated is not None and
+                                        c.state.terminated.reason != "Completed"):
+                                        printExtraHealth(c.name, "is not ready")
+                                    if c.state.waiting is not None:
+                                        printExtraHealth(c.name, c.state.waiting.reason)
+                idx = idx + 1
         else:
             printNotHealthy(p.metadata.name)
-            if getDbgLevel() >= dbgLow:
-                if p.status.init_container_statuses is not None:
-                    for c in p.status.init_container_statuses:
-                        if c.state.waiting is not None:
-                            printExtraHealth(c.name, c.state.waiting.reason)
-                for c in p.status.container_statuses:
-                    if c.state.waiting is not None:
-                        printExtraHealth(c.name, c.state.waiting.reason)
+            printExtraHealth("container", p.status.reason)
+
+
+if __name__ == "__main__":
+    setDbgLevel(dbgLow)
+    exit(validateHmsDependencies())
 

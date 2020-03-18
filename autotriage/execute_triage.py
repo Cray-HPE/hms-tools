@@ -7,11 +7,20 @@ import getpass
 from os import path
 
 from debug import *
+from k8s import *
+
+"""
+Triage modules
+"""
 from dependencies import *
 from riverTriage import *
 from mountainTriage import *
-from k8s import *
 
+triageModules = [
+        validateHmsDependencies,
+        triageRiverDiscovery,
+        triageMountainDiscovery
+        ]
 
 def main():
     parser = argparse.ArgumentParser(description='Automatic triaging tool.')
@@ -48,9 +57,11 @@ def main():
     # if args.host is None:
     #     args.host = "localhost"
 
-    validateHmsDependencies()
-    triageRiverDiscovery()
-    triageMountainDiscovery()
+    idx = 0
+    while idx < len(triageModules):
+        dbgPrint(dbgMed, "Calling: %d %s" % (idx, triageModules[idx].__name__))
+        triageModules[idx]()
+        idx = idx + 1
 
     print("Done")
 
