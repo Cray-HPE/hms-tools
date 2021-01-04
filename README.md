@@ -21,6 +21,14 @@ hms-triage-tools/
 |   |-- remote.py
 |   |-- riverTriage.py
 |
+|-- hwval/
+|   |-- auth.py
+|   |-- capmcValidation.py
+|   |-- debug.py
+|   |-- health.py
+|   |-- hwval.py
+|   |-- k8s.py
+|
 |-- push_tools_to_host.sh
 ```
 
@@ -138,3 +146,49 @@ Done
 
 Providing more than one -v starts getting into debugging information for the
 script itself.
+
+## Hardware Validation Tool
+
+This tool uses the kubernetes and requests modules for python to communicate
+with the system to determine hardware compatibility. This tool is designed as a
+high level thumbs up/thumbs down utility. Deep dive into why a certain aspect of
+the tool reports an error is not done. Extra information is provided where
+possible when a failure occurs. Not all hardware supports all features and may
+fail a portion of the validation.
+
+Each validation module can be executed on it's own, or it can be called from the
+main driver program hwval.py. When executed from the driver program, verbosity
+is off and you will only see **Not Healthy** messages. that can be changed using
+one or more -v options. When executed as an individual module, the verbosity is
+set to Low (a single -v) and cannot be changed on the command line. This level
+of verbosity will show all **OK**, **Not Healthy**, and additional error
+information for each of the **Not Healthy** items.
+
+New validation modules can be written and added to the hardwareValidation table
+in the hwval.py script. The hardwareValidation entries get executed in the order
+they appear in the list.
+
+```bash
+jolt1-ncn-w001:~/mjendrysik/hwval # ./hwval.py --h
+usage: hwval.py [-h] [-X XNAME] [-v] [-V]
+
+Automatic hardware validation tool.
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -X XNAME, --xname XNAME
+                        Xname to do hardware validation on.
+  -v, --verbose         Increase output verbosity.
+  -V, --version         Print the script version information and exit.
+```
+
+Example base output for a mountain node on jolt1.
+
+```bash
+jolt1-ncn-w001:/tmp/hms-triage-tools/hwval # ./hwval.py -X x9000c1s1b0n1
+get_power_cap_capabilities              	Not Healthy
+set_power_cap                           	Not Healthy
+get_node_energy                         	Not Healthy
+get_node_energy_stats                   	Not Healthy
+Done
+```
