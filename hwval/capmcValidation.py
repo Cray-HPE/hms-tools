@@ -84,9 +84,14 @@ def get_power_cap_capabilities(xname):
     group = capInfo['groups'][0]
 
     if group['controls']:
-        control = group['controls'][0]
-        capMax = control['max']
-        capMin = control['min']
+        control = None
+        for tmp in group['controls']:
+            if tmp['name'].startswith('Node'):
+                control = tmp
+                break
+        if control != None:
+            capMax = control['max']
+            capMin = control['min']
 
     supply = group['supply']
 
@@ -165,6 +170,12 @@ def get_power_cap(xname):
 
     return 0
 
+def extract_power_cap_val(capInfo):
+    for x in capInfo['nids'][0]['controls']:
+        if x["name"] == "node":
+            return x['val']
+    return None
+
 def set_power_cap(xname):
     dbgPrint(dbgMed, "set_power_cap")
 
@@ -221,7 +232,7 @@ def set_power_cap(xname):
         printExtraHealth(xname, "Node not in the Ready state")
         return -1
 
-    origVal = capInfo['nids'][0]['controls'][0]['val']
+    origVal = extract_power_cap_val(capInfo)
 
     if origVal is not None and origVal <= 0:
         printNotHealthy("set_power_cap")
@@ -319,7 +330,7 @@ def set_power_cap(xname):
         printExtraHealth(xname, "Node not in the Ready state")
         return -1
 
-    setVal = capInfo['nids'][0]['controls'][0]['val']
+    setVal = extract_power_cap_val(capInfo)
 
     if setVal is not None and setVal <= 0:
         printNotHealthy("set_power_cap")
