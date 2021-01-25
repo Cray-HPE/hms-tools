@@ -24,12 +24,13 @@
 
 import json
 import requests
+import sys
 
 from datetime import datetime, timedelta
 
-from debug import *
-from auth import *
-from health import *
+from debug import dbgPrint, setDbgLevel, dbgLow, dbgMed
+from auth import getAuthenticationToken
+from health import printExtraHealth, printNotHealthy, printOK
 
 auth_token = getAuthenticationToken()
 
@@ -633,120 +634,6 @@ def get_node_energy_counter(xname):
     printOK("get_node_energy_counter")
     return 0
 
-def get_system_power(xname):
-    dbgPrint(dbgMed, "get_system_power")
-
-    postHeaders = {
-            'Authorization': 'Bearer %s' % auth_token,
-            'cache-control': 'no-cache',
-            'Content-Type': 'application/json',
-            }
-
-    payload = {
-            'window-len': 300,
-            }
-
-    URL = "https://api-gw-service-nmn.local/apis/capmc/capmc/v1/get_system_power"
-
-    dbgPrint(dbgMed, "POST: %s %s %s" % (URL, postHeaders, payload))
-
-    r = requests.post(url = URL, headers = postHeaders, data = json.dumps(payload))
-
-    dbgPrint(dbgMed, "Response: %s" % r.text)
-
-    label = ""
-    msg = ""
-
-    if r.status_code >= 500:
-        label = "CAPMC"
-        msg = "Internal CAPMC Error"
-    elif r.status_code >= 400:
-        label = "system"
-        msg = "Bad Request"
-    elif r.status_code >= 300:
-        label = "CAPMC"
-        msg = "URI redirection"
-
-    if r.status_code >= 300:
-        printNotHealthy("get_system_power")
-        printExtraHealth(label, msg)
-        return 1
-
-    powerInfo = json.loads(r.text)
-    err = powerInfo['e']
-
-    if err > 0:
-        printNotHealthy("get_system_power")
-        printExtraHealth("system", "No data in time window")
-        return 1
-
-    avgPower = powerInfo['avg']
-
-    if avgPower <= 0:
-        printNotHealthy("get_system_power")
-        printExtraHealth("Avg Power", avgPower)
-        return 1
-
-    printOK("get_system_power")
-    return 0
-
-def get_system_power_details(xname):
-    dbgPrint(dbgMed, "get_system_power_details")
-
-    postHeaders = {
-            'Authorization': 'Bearer %s' % auth_token,
-            'cache-control': 'no-cache',
-            'Content-Type': 'application/json',
-            }
-
-    payload = {
-            'window-len': 300,
-            }
-
-    URL = "https://api-gw-service-nmn.local/apis/capmc/capmc/v1/get_system_power_details"
-
-    dbgPrint(dbgMed, "POST: %s %s %s" % (URL, postHeaders, payload))
-
-    r = requests.post(url = URL, headers = postHeaders, data = json.dumps(payload))
-
-    dbgPrint(dbgMed, "Response: %s" % r.text)
-
-    label = ""
-    msg = ""
-
-    if r.status_code >= 500:
-        label = "CAPMC"
-        msg = "Internal CAPMC Error"
-    elif r.status_code >= 400:
-        label = "system"
-        msg = "Bad Request"
-    elif r.status_code >= 300:
-        label = "CAPMC"
-        msg = "URI redirection"
-
-    if r.status_code >= 300:
-        printNotHealthy("get_system_power_details")
-        printExtraHealth(label, msg)
-        return 1
-
-    powerInfo = json.loads(r.text)
-    err = powerInfo['e']
-
-    if err > 0:
-        printNotHealthy("get_system_power_details")
-        printExtraHealth("system", "No data in time window")
-        return 1
-
-    avgPower = powerInfo['cabinets'][0]['avg']
-
-    if avgPower <= 0:
-        printNotHealthy("get_system_power_details")
-        printExtraHealth("Avg Power", avgPower)
-        return 1
-
-    printOK("get_system_power_details")
-    return 0
-
 def get_xname_status(xname):
     dbgPrint(dbgMed, "get_xname_status")
 
@@ -805,8 +692,6 @@ validations = [
         get_node_energy,
         get_node_energy_stats,
         get_node_energy_counter,
-        get_system_power,
-        get_system_power_details,
         get_xname_status
         ]
 
@@ -834,5 +719,7 @@ def capmcValidation(xname, tests=None, list=False):
 
 if __name__ == "__main__":
     setDbgLevel(dbgLow)
-    exit(capmcValidation())
+    dbgPrint(dbgLow, "Calling: capmcValidation(%s, %s, %s)" % (sys.argv[1],
+        sys.argv[2], sys.argv[3]))
+    exit(capmcValidation(sys.argv[1], sys.argv[2], sys.argv[3]))
 

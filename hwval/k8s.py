@@ -1,6 +1,6 @@
 # MIT License
 #
-# (C) Copyright [2020] Hewlett Packard Enterprise Development LP
+# (C) Copyright [2020-2021] Hewlett Packard Enterprise Development LP
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -22,11 +22,10 @@
 
 from kubernetes import client, config
 
-from debug import *
+from debug import dbgPrint, dbgMed
 
 config.load_kube_config()
 k8sClient = client.CoreV1Api()
-
 
 def getK8sClient():
     dbgPrint(dbgMed, "getK8sClient")
