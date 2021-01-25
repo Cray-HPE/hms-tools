@@ -25,7 +25,8 @@ import requests
 
 from base64 import b64decode
 
-from k8s import *
+from k8s import getK8sClient
+from debug import dbgPrint, dbgMed, dbgHigh
 
 def getAuthenticationToken():
     dbgPrint(dbgMed, "getAuthenticationToken")

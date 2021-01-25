@@ -27,12 +27,12 @@ import argparse
 
 from os import path
 
-from debug import *
+from debug import dbgPrint, dbgMed, setDbgLevel
 
 """
 HW Validation modules
 """
-from capmcValidation import *
+from capmcValidation import capmcValidation
 
 hwValidationModule = [
         capmcValidation
