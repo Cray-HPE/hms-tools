@@ -60,6 +60,6 @@ fi
 
 set -e
 
-rsync -avzh autotriage root@${host}:/tmp/hms-triage-tools
-rsync -avzh hwval root@${host}:/tmp/hms-triage-tools
+rsync -avzh autotriage root@${host}:/tmp/hms-tools
+rsync -avzh hwval root@${host}:/tmp/hms-tools
 
