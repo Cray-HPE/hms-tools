@@ -24,12 +24,17 @@
 
 import sys
 import argparse
+import json
+import requests
 
 from os import path
 
-from debug import dbgPrint, dbgMed, setDbgLevel
-
 import hostlist
+
+from debug import dbgPrint, dbgMed, dbgHigh, setDbgLevel
+from auth import getAuthenticationToken
+
+auth_token = getAuthenticationToken()
 
 """
 HW Validation modules
@@ -40,6 +45,40 @@ hwValidationModule = [
         capmcValidation
         ]
 
+def nidsToXnames(nidlist):
+    dbgPrint(dbgMed, "nidsToXnames")
+
+    getHeaders = {
+            'Authorization': 'Bearer %s' % auth_token,
+            'cache-control': 'no-cache',
+            }
+
+    queryparams = {}
+    queryparams['nid'] = []
+    for n in nidlist.split(','):
+        queryparams['nid'].append(int(n))
+
+    URL = "https://api-gw-service-nmn.local/apis/smd/hsm/v1/State/Components"
+
+    dbgPrint(dbgMed, "POST: %s %s" % (URL, queryparams))
+    dbgPrint(dbgHigh, "POST: %s" % getHeaders)
+
+    r = requests.get(url = URL, headers = getHeaders, params = queryparams)
+
+    dbgPrint(dbgMed, "Response: %s" % r.text)
+
+    if r.status_code >= 300:
+        return 1
+
+    components = json.loads(r.text)
+    xnames = None
+    for comp in components['Components']:
+        if xnames is None:
+            xnames = comp['ID']
+        else:
+            xnames = xnames + ',' + comp['ID']
+
+    return xnames
 
 def main():
     parser = argparse.ArgumentParser(description='Automatic hardware validation tool.')
@@ -50,6 +89,10 @@ def main():
     parser.add_argument('-x', '--xnames',
             help='Xnames to do hardware validation on. Valid options are a '
                'single xname, comma separated xnames, or hostlist style xnames')
+    parser.add_argument('-n', '--nids',
+            help='Nids to do hardware validation on. Valid options are a '
+               'single nid, comma separated nids, or hostlist style nids: '
+               '[1-10]')
     parser.add_argument('-t', '--tests',
             help='List of tests to execute in the form '
                 '<module>:<test>[,<module>:<test>[,...]]')
@@ -87,9 +130,26 @@ def main():
 
         return 0
 
-    if args.xnames is None:
-        print("Invalid argument.")
+    if args.xnames is None and args.nids is None:
+        parser.print_usage()
+        print("%s: error: missing argument" % path.basename(__file__))
         return 1
+
+    if args.nids is not None:
+        nids = hostlist.expand(args.nids)
+        xnames = nidsToXnames(nids)
+
+    if args.xnames is not None:
+        if xnames is not None:
+            args.xnames = args.xnames + ',' + xnames
+        xnames = hostlist.expand(args.xnames)
+
+    dbgPrint(dbgMed, "Nodes to validate: %s" % xnames)
+
+    # Convert into a list and remove duplicates
+    xnames = xnames.split(',')
+    xnames_set = set(xnames)
+    xnames = (list(xnames_set))
 
     tests = {}
     if args.tests:
@@ -101,8 +161,6 @@ def main():
             tests[kv[0]].append(kv[1])
 
     dbgPrint(dbgMed, "Tests to execute: %s" % tests)
-
-    xnames = hostlist.expand(args.xnames).split(',')
 
     failures = 0
 
