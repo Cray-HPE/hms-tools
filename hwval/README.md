@@ -26,9 +26,10 @@ they appear in the list.
 
 ## Usage
 ```
-jolt1-ncn-w001:~ # cd /tmp/hms-tools
-jolt1-ncn-w001:/tmp/hms-tools/hwval # ./hwval.py --h
-usage: hwval.py [-h] [-l LIST] [-x XNAME] [-t TESTS] [-v] [-V]
+ncn-m001:~ # cd /tmp/hms-tools
+ncn-m001:/tmp/hms-tools/hwval # ./hwval.py --h
+usage: hwval.py [-h] [-l LIST] [-x XNAMES] [-n NIDS] [-t TESTS] [-v] [-V]
+                [-u USER] [-p PASSWD]
 
 Automatic hardware validation tool.
 
@@ -37,32 +38,42 @@ optional arguments:
   -l LIST, --list LIST  List modules and tests that are available. all: show
                         all modules and tests, top: show top level modules,
                         <module>: show tests for the module
-  -x XNAME, --xname XNAME
-                        Xname to do hardware validation on.
+  -x XNAMES, --xnames XNAMES
+                        Xnames to do hardware validation on. Valid options are
+                        a single xname, comma separated xnames, or hostlist
+                        style xnames
+  -n NIDS, --nids NIDS  Nids to do hardware validation on. Valid options are a
+                        single nid, comma separated nids, or hostlist style
+                        nids: [1-10]
   -t TESTS, --tests TESTS
                         List of tests to execute in the form
                         <module>:<test>[,<module>:<test>[,...]]
   -v, --verbose         Increase output verbosity.
   -V, --version         Print the script version information and exit.
+  -u USER, --user USER  Username for Redfish validation. All --xnames must
+                        have the same username for their BMC.
+  -p PASSWD, --passwd PASSWD
+                        Password for Redfish validation. All --xnames must
+                        have the same password for their BMC.
 ```
 
 Example output for a mountain node.
 
 ```
-jolt1-ncn-w001:/tmp/hms-tools/hwval # ./hwval.py -x x9000c1s1b0n1 -v
-capmcValidation:
+ncn-m001:/tmp/hms-tools/hwval # ./hwval.py -x x1000c7s5b0n0 -u root -p $PASSWD -v
+capmcValidation(x1000c7s5b0n0):
 get_power_cap_capabilities              	OK
 get_power_cap                           	OK
 set_power_cap                           	OK
 get_node_energy                         	Not Healthy
-                           x9000c1s1b1n1	No data in time window
+                           x1000c7s5b0n0	No data in time window
 get_node_energy_stats                   	Not Healthy
-                           x9000c1s1b1n1	No data in time window
+                           x1000c7s5b0n0	No data in time window
 get_node_energy_counter                 	Not Healthy
-                           x9000c1s1b1n1	No data in time window
-get_system_power                        	OK
-get_system_power_details                	OK
+                           x1000c7s5b0n0	No data in time window
 get_xname_status                        	OK
-3 Tests failed
+redfishValidation(x1000c7s5b0n0):
+telemetryPoll                           	OK
+6 Validations FAILED
 Done
 ```

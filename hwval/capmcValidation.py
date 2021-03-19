@@ -695,7 +695,7 @@ validations = [
         get_xname_status
         ]
 
-def capmcValidation(xname, tests=None, list=False):
+def capmcValidation(xname, tests=None, list=False, args=None):
     dbgPrint(dbgMed, "capmcValidation")
 
     if list:
