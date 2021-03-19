@@ -24,6 +24,10 @@ Fixed - for any bug fixes
 Security - in case of vulnerabilities
 -->
 
+## [0.7.0] - 2021-03-18
+### Added
+- Checked polling telemetry locations in Redfish
+
 ## [0.6.0] - 2021-01-28
 ### Added
 - Support for using NIDs as validation targets

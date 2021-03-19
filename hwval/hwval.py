@@ -40,9 +40,11 @@ auth_token = getAuthenticationToken()
 HW Validation modules
 """
 from capmcValidation import capmcValidation
+from redfishValidation import redfishValidation
 
 hwValidationModule = [
-        capmcValidation
+        capmcValidation,
+        redfishValidation
         ]
 
 def nidsToXnames(nidlist):
@@ -100,6 +102,12 @@ def main():
             help='Increase output verbosity.')
     parser.add_argument('-V', '--version', action="store_true",
             help='Print the script version information and exit.')
+    parser.add_argument('-u', '--user',
+            help='Username for Redfish validation. All --xnames must have the '
+               'same username for their BMC.')
+    parser.add_argument('-p', '--passwd',
+            help='Password for Redfish validation. All --xnames must have the '
+               'same password for their BMC.')
     args = parser.parse_args()
 
     if args.version is True:
@@ -135,6 +143,7 @@ def main():
         print("%s: error: missing argument" % path.basename(__file__))
         return 1
 
+    xnames = None
     if args.nids is not None:
         nids = hostlist.expand(args.nids)
         xnames = nidsToXnames(nids)
@@ -170,12 +179,12 @@ def main():
                 for module in hwValidationModule:
                     if m == module.__name__:
                         print("\033[1;36m%s(%s):\033[0m" % (module.__name__, xname))
-                        ret = module(xname, tests[m])
+                        ret = module(xname, tests[m], None, args)
                         failures = failures + ret
         else:
             for module in hwValidationModule:
                 print("\033[1;36m%s(%s):\033[0m" % (module.__name__, xname))
-                ret = module(xname)
+                ret = module(xname, None, False, args)
                 failures = failures + ret
 
     if failures == 0:
