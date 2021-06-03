@@ -23,10 +23,11 @@
 #
 # Local modification of original source
 
+""" pdsh/SLURM style hostlist generator """
+
 # pylint: disable=too-many-locals, too-many-branches
 
 import re
-
 
 def split_nodelist(nodelist):
     """
