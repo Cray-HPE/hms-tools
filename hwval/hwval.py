@@ -29,58 +29,22 @@ import requests
 
 from os import path
 
-import hostlist
-
-from debug import dbgPrint, dbgMed, dbgHigh, setDbgLevel
-from auth import getAuthenticationToken
-
-auth_token = getAuthenticationToken()
+from utils.hostlist import expand
+from utils.debug import dbgPrint, dbgMed, dbgHigh, setDbgLevel
+from utils.auth import getAuthenticationToken
+from utils.conversions import nidsToXnames
+import config
 
 """
 HW Validation modules
 """
-from capmcValidation import capmcValidation
-from redfishValidation import redfishValidation
+from validations.capmc import capmc
+from validations.redfish import redfish
 
 hwValidationModule = [
-        capmcValidation,
-        redfishValidation
+        capmc,
+        redfish
         ]
-
-def nidsToXnames(nidlist):
-    dbgPrint(dbgMed, "nidsToXnames")
-
-    getHeaders = {
-            'Authorization': 'Bearer %s' % auth_token,
-            'cache-control': 'no-cache',
-            }
-
-    queryparams = {}
-    queryparams['nid'] = []
-    for n in nidlist.split(','):
-        queryparams['nid'].append(int(n))
-
-    URL = "https://api-gw-service-nmn.local/apis/smd/hsm/v1/State/Components"
-
-    dbgPrint(dbgMed, "POST: %s %s" % (URL, queryparams))
-    dbgPrint(dbgHigh, "POST: %s" % getHeaders)
-
-    r = requests.get(url = URL, headers = getHeaders, params = queryparams)
-
-    dbgPrint(dbgMed, "Response: %s" % r.text)
-
-    if r.status_code >= 300:
-        return 1
-
-    components = json.loads(r.text)
-    xnames = None
-    for comp in components['Components']:
-        if xnames is None:
-            xnames = comp['ID']
-        else:
-            xnames = xnames + ',' + comp['ID']
-
-    return xnames
 
 def main():
     parser = argparse.ArgumentParser(description='Automatic hardware validation tool.')
@@ -95,9 +59,13 @@ def main():
             help='Nids to do hardware validation on. Valid options are a '
                'single nid, comma separated nids, or hostlist style nids: '
                '[1-10]')
+    parser.add_argument('-i', '--ips',
+            help='IPs to do hardware validation on. Valid options are a '
+                'single IP, comma separated IPs, or hostlist style IPs: '
+                '10.1.100.[1-36]')
     parser.add_argument('-t', '--tests',
             help='List of tests to execute in the form '
-                '<module>:<test>[,<module>:<test>[,...]]')
+                '<module>[:<test>][,<module>[:<test>][,...]]')
     parser.add_argument('-v', '--verbose', action="count", default=0,
             help='Increase output verbosity.')
     parser.add_argument('-V', '--version', action="store_true",
@@ -138,20 +106,25 @@ def main():
 
         return 0
 
-    if args.xnames is None and args.nids is None:
+    if args.xnames is None and args.nids is None and args.ips is None:
         parser.print_usage()
         print("%s: error: missing argument" % path.basename(__file__))
         return 1
 
     xnames = None
     if args.nids is not None:
-        nids = hostlist.expand(args.nids)
+        nids = expand(args.nids)
         xnames = nidsToXnames(nids)
 
     if args.xnames is not None:
         if xnames is not None:
             args.xnames = args.xnames + ',' + xnames
-        xnames = hostlist.expand(args.xnames)
+        xnames = expand(args.xnames)
+
+    if args.ips is not None:
+        if xnames is not None:
+            args.ips = args.ips + ',' + xnames
+        xnames = expand(args.ips)
 
     dbgPrint(dbgMed, "Nodes to validate: %s" % xnames)
 
@@ -167,11 +140,21 @@ def main():
             kv = p.split(':')
             if kv[0] not in tests:
                 tests[kv[0]] = []
-            tests[kv[0]].append(kv[1])
+            if len(kv) == 1:
+                for pkg in hwValidationModule:
+                    if pkg.__name__ == kv[0]:
+                        pkgTests = pkg(None, None, True)
+                        for t in pkgTests:
+                            tests[kv[0]].append(t.__name__)
+            else:
+                tests[kv[0]].append(kv[1])
 
     dbgPrint(dbgMed, "Tests to execute: %s" % tests)
 
     failures = 0
+
+    config.rfUser = args.user
+    config.rfPass = args.passwd
 
     for xname in xnames:
         if tests:

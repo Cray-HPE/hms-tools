@@ -20,13 +20,32 @@
 # ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 # OTHER DEALINGS IN THE SOFTWARE.
 
-from kubernetes import client, config
+from utils.debug import dbgPrint, dbgLow
 
-from debug import dbgPrint, dbgMed
+def printOK(msg):
+    r""" printOK(msg) - Prints the message with an OK """
+    dbgPrint(dbgLow, "\033[1;32m%-40s\tOK\033[0m" % msg)
 
-config.load_kube_config()
-k8sClient = client.CoreV1Api()
+def printWarning(msg):
+    r""" printWarning(msg) - Prints the message with a Warning"""
+    print("\033[1;33m%-40s\tWarning\033[0m" % msg)
 
-def getK8sClient():
-    dbgPrint(dbgMed, "getK8sClient")
-    return k8sClient
+def printExtraWarning(label, msg):
+    r""" printExtraWarning(label, msg) - Prints a label and then the message """
+    dbgPrint(dbgLow, "\033[1;33m%40s\t%s\033[0m" % (label, msg))
+
+def printError(msg):
+    r""" printNotHealthy(msg) - Prints the message with a Error"""
+    print("\033[1;31m%-40s\tError\033[0m" % msg)
+
+def printExtraError(label, msg):
+    r""" printExtraHealth(label, msg) - Prints a label and then the message """
+    dbgPrint(dbgLow, "\033[1;31m%40s\t%s\033[0m" % (label, msg))
+
+def printInfo(msg):
+    r""" printInfo(msg) - Prints the message with a Info"""
+    print("\033[1;35m%-40s\tInfo\033[0m" % msg)
+
+def printExtraInfo(label, msg):
+    r""" printExtraInfo(label, msg) - Prints a label and then the message """
+    dbgPrint(dbgLow, "\033[1;35m%40s\t%s\033[0m" % (label, msg))

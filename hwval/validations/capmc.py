@@ -28,13 +28,12 @@ import sys
 
 from datetime import datetime, timedelta
 
-from debug import dbgPrint, setDbgLevel, dbgLow, dbgMed
-from auth import getAuthenticationToken
-from health import printExtraHealth, printNotHealthy, printOK
+from utils.debug import dbgPrint, setDbgLevel, dbgLow, dbgMed
+from utils.auth import getAuthenticationToken
+from utils.health import printOK
+from utils.health import printError, printExtraError
 
-auth_token = getAuthenticationToken()
-
-def getNid(xname):
+def getNid(xname, auth_token):
     dbgPrint(dbgMed, "getNid")
 
     getHeaders = {
@@ -61,16 +60,16 @@ def getNid(xname):
 capMin = 0
 capMax = 0
 
-def get_power_cap_capabilities(xname):
+def get_power_cap_capabilities(xname, auth_token):
     dbgPrint(dbgMed, "get_power_cap_capabilities")
     global capMin
     global capMax
 
-    nid = getNid(xname)
+    nid = getNid(xname, auth_token)
 
     if nid < 0:
-        printNotHealthy("get_power_cap_capabilities")
-        printExtraHealth(xname, "Could not get nid")
+        printError("get_power_cap_capabilities")
+        printExtraError(xname, "Could not get nid")
         return 1
 
     postHeaders = {
@@ -102,8 +101,8 @@ def get_power_cap_capabilities(xname):
         msg = "URI redirection"
 
     if r.status_code >= 300:
-        printNotHealthy("get_power_cap_capabilities")
-        printExtraHealth(label, msg)
+        printError("get_power_cap_capabilities")
+        printExtraError(label, msg)
         return 1
 
     capInfo = json.loads(r.text)
@@ -124,10 +123,10 @@ def get_power_cap_capabilities(xname):
 
     if capMax == 0:
         if supply == 0:
-            printNotHealthy("get_power_cap_capabilities")
-            printExtraHealth("min", capMin)
-            printExtraHealth("max", capMax)
-            printExtraHealth("supply", supply)
+            printError("get_power_cap_capabilities")
+            printExtraError("min", capMin)
+            printExtraError("max", capMax)
+            printExtraError("supply", supply)
             return 1
         else:
             capMax = supply
@@ -136,14 +135,14 @@ def get_power_cap_capabilities(xname):
 
     return 0
 
-def get_power_cap(xname):
+def get_power_cap(xname, auth_token):
     dbgPrint(dbgMed, "get_power_cap")
 
-    nid = getNid(xname)
+    nid = getNid(xname, auth_token)
 
     if nid < 0:
-        printNotHealthy("get_power_cap")
-        printExtraHealth(xname, "Could not get nid")
+        printError("get_power_cap")
+        printExtraError(xname, "Could not get nid")
         return 1
 
     postHeaders = {
@@ -175,8 +174,8 @@ def get_power_cap(xname):
         msg = "URI redirection"
 
     if r.status_code >= 300:
-        printNotHealthy("get_power_cap")
-        printExtraHealth(label, msg)
+        printError("get_power_cap")
+        printExtraError(label, msg)
         return 1
 
     capInfo = json.loads(r.text)
@@ -184,15 +183,15 @@ def get_power_cap(xname):
     err = capInfo['e']
 
     if err != 0:
-        printNotHealthy("get_power_cap")
-        printExtraHealth(xname, capInfo['nids'][0]['err_msg'])
+        printError("get_power_cap")
+        printExtraError(xname, capInfo['nids'][0]['err_msg'])
         return 1
 
     val = capInfo['nids'][0]['controls'][0]['val']
 
     if val is not None and val <= 0:
-        printNotHealthy("get_power_cap")
-        printExtraHealth("value", val)
+        printError("get_power_cap")
+        printExtraError("value", val)
         return 1
 
     printOK("get_power_cap")
@@ -205,19 +204,19 @@ def extract_power_cap_val(capInfo):
             return x['val']
     return None
 
-def set_power_cap(xname):
+def set_power_cap(xname, auth_token):
     dbgPrint(dbgMed, "set_power_cap")
 
     if capMax == 0:
-        printNotHealthy("set_power_cap")
-        printExtraHealth("Invalid max cap value", capMax)
+        printError("set_power_cap")
+        printExtraError("Invalid max cap value", capMax)
         return 1
 
-    nid = getNid(xname)
+    nid = getNid(xname, auth_token)
 
     if nid < 0:
-        printNotHealthy("set_power_cap")
-        printExtraHealth(xname, "Could not get nid")
+        printError("set_power_cap")
+        printExtraError(xname, "Could not get nid")
         return 1
 
     # Get and save original value
@@ -250,8 +249,8 @@ def set_power_cap(xname):
         msg = "URI redirection"
 
     if r.status_code >= 300:
-        printNotHealthy("set_power_cap")
-        printExtraHealth(label, msg)
+        printError("set_power_cap")
+        printExtraError(label, msg)
         return 1
 
     capInfo = json.loads(r.text)
@@ -259,21 +258,21 @@ def set_power_cap(xname):
     err = capInfo['e']
 
     if err != 0:
-        printNotHealthy("set_power_cap")
-        printExtraHealth(xname, "Node not in the Ready state")
+        printError("set_power_cap")
+        printExtraError(xname, "Node not in the Ready state")
         return 1
 
     origVal = extract_power_cap_val(capInfo)
 
     if origVal is not None and origVal <= 0:
-        printNotHealthy("set_power_cap")
-        printExtraHealth("value", origVal)
+        printError("set_power_cap")
+        printExtraError("value", origVal)
         return 1
 
     # Verify in range
     if origVal is not None and (origVal < capMin or origVal > capMax):
-        printNotHealthy("set_power_cap")
-        printExtraHealth("value", origVal)
+        printError("set_power_cap")
+        printExtraError("value", origVal)
         return 1
 
     # Set to (max - 10)
@@ -308,8 +307,8 @@ def set_power_cap(xname):
         msg = "URI redirection"
 
     if r.status_code >= 300:
-        printNotHealthy("set_power_cap")
-        printExtraHealth(label, msg)
+        printError("set_power_cap")
+        printExtraError(label, msg)
         return 1
 
     capInfo = json.loads(r.text)
@@ -317,8 +316,8 @@ def set_power_cap(xname):
     err = capInfo['e']
 
     if err != 0:
-        printNotHealthy("set_power_cap")
-        printExtraHealth(xname, capInfo['nids'][0]['err_msg'])
+        printError("set_power_cap")
+        printExtraError(xname, capInfo['nids'][0]['err_msg'])
         return 1
 
     # Get
@@ -352,8 +351,8 @@ def set_power_cap(xname):
         msg = "URI redirection"
 
     if r.status_code >= 300:
-        printNotHealthy("set_power_cap")
-        printExtraHealth(label, msg)
+        printError("set_power_cap")
+        printExtraError(label, msg)
         return 1
 
     capInfo = json.loads(r.text)
@@ -361,22 +360,22 @@ def set_power_cap(xname):
     err = capInfo['e']
 
     if err != 0:
-        printNotHealthy("set_power_cap")
-        printExtraHealth(xname, "Node not in the Ready state")
+        printError("set_power_cap")
+        printExtraError(xname, "Node not in the Ready state")
         return 1
 
     setVal = extract_power_cap_val(capInfo)
 
     if setVal is not None and setVal <= 0:
-        printNotHealthy("set_power_cap")
-        printExtraHealth("value", setVal)
+        printError("set_power_cap")
+        printExtraError("value", setVal)
         return 1
 
     # Verify avg of min/max
     if setVal != capVal:
-        printNotHealthy("set_power_cap")
-        printExtraHealth("set value", setVal)
-        printExtraHealth("expected value", capVal)
+        printError("set_power_cap")
+        printExtraError("set value", setVal)
+        printExtraError("expected value", capVal)
         return 1
 
     # Set original value
@@ -415,22 +414,22 @@ def set_power_cap(xname):
         msg = "URI redirection"
 
     if r.status_code >= 300:
-        printNotHealthy("set_power_cap")
-        printExtraHealth(label, msg)
+        printError("set_power_cap")
+        printExtraError(label, msg)
         return 1
 
     printOK("set_power_cap")
 
     return 0
 
-def get_node_energy(xname):
+def get_node_energy(xname, auth_token):
     dbgPrint(dbgMed, "get_node_energy")
 
-    nid = getNid(xname)
+    nid = getNid(xname, auth_token)
 
     if nid < 0:
-        printNotHealthy("get_node_energy")
-        printExtraHealth(xname, "Could not get nid")
+        printError("get_node_energy")
+        printExtraError(xname, "Could not get nid")
         return 1
 
     postHeaders = {
@@ -471,37 +470,37 @@ def get_node_energy(xname):
         msg = "URI redirection"
 
     if r.status_code >= 300:
-        printNotHealthy("get_node_energy")
-        printExtraHealth(label, msg)
+        printError("get_node_energy")
+        printExtraError(label, msg)
         return 1
 
     energyInfo = json.loads(r.text)
     err = energyInfo['e']
 
     if err > 0:
-        printNotHealthy("get_node_energy")
-        printExtraHealth(xname, "No data in time window")
+        printError("get_node_energy")
+        printExtraError(xname, "No data in time window")
         return 1
 
     energy = energyInfo['nodes'][0]['energy']
 
     if energy <= 0:
-        printNotHealthy("get_node_energy")
-        printExtraHealth("energy", energy)
+        printError("get_node_energy")
+        printExtraError("energy", energy)
         return 1
 
     printOK("get_node_energy")
 
     return 0
 
-def get_node_energy_stats(xname):
+def get_node_energy_stats(xname, auth_token):
     dbgPrint(dbgMed, "get_node_energy_stats")
 
-    nid = getNid(xname)
+    nid = getNid(xname, auth_token)
 
     if nid < 0:
-        printNotHealthy("get_node_energy_stats")
-        printExtraHealth(xname, "Could not get nid")
+        printError("get_node_energy_stats")
+        printExtraError(xname, "Could not get nid")
         return 1
 
     postHeaders = {
@@ -542,36 +541,36 @@ def get_node_energy_stats(xname):
         msg = "URI redirection"
 
     if r.status_code >= 300:
-        printNotHealthy("get_node_energy_stats")
-        printExtraHealth(label, msg)
+        printError("get_node_energy_stats")
+        printExtraError(label, msg)
         return 1
 
     energyInfo = json.loads(r.text)
     err = energyInfo['e']
 
     if err > 0:
-        printNotHealthy("get_node_energy_stats")
-        printExtraHealth(xname, "No data in time window")
+        printError("get_node_energy_stats")
+        printExtraError(xname, "No data in time window")
         return 1
 
     energy = energyInfo['energy_total']
 
     if energy <= 0:
-        printNotHealthy("get_node_energy_stats")
-        printExtraHealth("energy_total", energy)
+        printError("get_node_energy_stats")
+        printExtraError("energy_total", energy)
         return 1
 
     printOK("get_node_energy_stats")
     return 0
 
-def get_node_energy_counter(xname):
+def get_node_energy_counter(xname, auth_token):
     dbgPrint(dbgMed, "get_node_energy_counter")
 
-    nid = getNid(xname)
+    nid = getNid(xname, auth_token)
 
     if nid < 0:
-        printNotHealthy("get_node_energy_stats")
-        printExtraHealth(xname, "Could not get nid")
+        printError("get_node_energy_stats")
+        printExtraError(xname, "Could not get nid")
         return 1
 
     postHeaders = {
@@ -612,29 +611,29 @@ def get_node_energy_counter(xname):
         msg = "URI redirection"
 
     if r.status_code >= 300:
-        printNotHealthy("get_node_energy_counter")
-        printExtraHealth(label, msg)
+        printError("get_node_energy_counter")
+        printExtraError(label, msg)
         return 1
 
     energyInfo = json.loads(r.text)
     err = energyInfo['e']
 
     if err > 0:
-        printNotHealthy("get_node_energy_counter")
-        printExtraHealth(xname, "No data in time window")
+        printError("get_node_energy_counter")
+        printExtraError(xname, "No data in time window")
         return 1
 
     energy = energyInfo['nodes'][0]['energy_ctr']
 
     if energy <= 0:
-        printNotHealthy("get_node_energy_counter")
-        printExtraHealth("energy_ctr", energy)
+        printError("get_node_energy_counter")
+        printExtraError("energy_ctr", energy)
         return 1
 
     printOK("get_node_energy_counter")
     return 0
 
-def get_xname_status(xname):
+def get_xname_status(xname, auth_token):
     dbgPrint(dbgMed, "get_xname_status")
 
     postHeaders = {
@@ -669,16 +668,16 @@ def get_xname_status(xname):
         msg = "URI redirection"
 
     if r.status_code >= 300:
-        printNotHealthy("get_xname_status")
-        printExtraHealth(label, msg)
+        printError("get_xname_status")
+        printExtraError(label, msg)
         return 1
 
     status = json.loads(r.text)
     err = status['e']
 
     if err < 0:
-        printNotHealthy("get_xname_status")
-        printExtraHealth(xname, "Could not talk to BMC, undefined")
+        printError("get_xname_status")
+        printExtraError(xname, "Could not talk to BMC, undefined")
         return 1
 
     printOK("get_xname_status")
@@ -695,31 +694,34 @@ validations = [
         get_xname_status
         ]
 
-def capmcValidation(xname, tests=None, list=False, args=None):
-    dbgPrint(dbgMed, "capmcValidation")
+
+def capmc(xname, tests=None, list=False, args=None):
+    dbgPrint(dbgMed, "capmc")
 
     if list:
         return validations
+
+    auth_token = getAuthenticationToken()
 
     failures = 0
     if tests:
         for t in tests:
             for test in validations:
                 if t == test.__name__:
-                    dbgPrint(dbgMed, "Calling: capmcValidation:%s" % test.__name__)
-                    ret = test(xname)
+                    dbgPrint(dbgMed, "Calling: capmc:%s" % test.__name__)
+                    ret = test(xname, auth_token)
                     failures = failures + ret
     else:
         for test in validations:
-            dbgPrint(dbgMed, "Calling: capmcValidation:%s" % test.__name__)
-            ret = test(xname)
+            dbgPrint(dbgMed, "Calling: capmc:%s" % test.__name__)
+            ret = test(xname, auth_token)
             failures = failures + ret
 
     return failures
 
 if __name__ == "__main__":
     setDbgLevel(dbgLow)
-    dbgPrint(dbgLow, "Calling: capmcValidation(%s, %s, %s)" % (sys.argv[1],
+    dbgPrint(dbgLow, "Calling: capmc(%s, %s, %s)" % (sys.argv[1],
         sys.argv[2], sys.argv[3]))
-    exit(capmcValidation(sys.argv[1], sys.argv[2], sys.argv[3]))
+    exit(capmc(sys.argv[1], sys.argv[2], sys.argv[3]))
 

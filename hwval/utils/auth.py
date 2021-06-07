@@ -20,16 +20,37 @@
 # ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 # OTHER DEALINGS IN THE SOFTWARE.
 
-from debug import dbgPrint, dbgLow
+import json
+import requests
 
-def printOK(msg):
-    r""" printOK(msg) - Prints the message with an OK """
-    dbgPrint(dbgLow, "\033[1;32m%-40s\tOK\033[0m" % msg)
+from base64 import b64decode
 
-def printNotHealthy(msg):
-    r""" printNotHealthy(msg) - Prints the message with a Not Healthy """
-    print("\033[1;31m%-40s\tNot Healthy\033[0m" % msg)
+from utils.k8s import getK8sClient
+from utils.debug import dbgPrint, dbgMed, dbgHigh
 
-def printExtraHealth(label, msg):
-    r""" printExtraHealth(label, msg) - Prints a lable and then the message """
-    dbgPrint(dbgLow, "\033[1;31m%40s\t%s\033[0m" % (label, msg))
+def getAuthenticationToken():
+    dbgPrint(dbgMed, "getAuthenticationToken")
+
+    URL = "https://api-gw-service-nmn.local/keycloak/realms/shasta/protocol/openid-connect/token"
+
+    kSecret = getK8sClient().read_namespaced_secret("admin-client-auth", "default")
+    secret = b64decode(kSecret.data['client-secret']).decode("utf-8")
+    dbgPrint(dbgHigh, "\tSecret: " + secret)
+
+    DATA = {
+            "grant_type": "client_credentials",
+            "client_id": "admin-client",
+            "client_secret": secret
+            }
+
+    try:
+        r = requests.post(url = URL, data = DATA)
+    except OSError:
+        return ""
+
+    result = json.loads(r.text)
+
+    dbgPrint(dbgHigh, result['access_token'])
+    return result['access_token']
+
+
