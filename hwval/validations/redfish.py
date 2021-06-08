@@ -35,6 +35,7 @@ from .redfishmod.managers import checkRedfishManagers
 from .redfishmod.event_service import checkRedfishEventService
 from .redfishmod.telemetry_poll import telemetryPoll
 from .redfishmod.systems import checkRedfishSystems
+from .redfishmod.update_service import checkRedfishUpdateService
 
 validations = [
     #eventSubscribe,
@@ -45,6 +46,7 @@ validations = [
     checkRedfishManagers,
     checkRedfishEventService,
     checkRedfishSystems,
+    checkRedfishUpdateService,
     telemetryPoll
         ]
 

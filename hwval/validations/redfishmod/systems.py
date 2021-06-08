@@ -2,7 +2,7 @@
 
 # MIT License
 #
-# (C) Copyright [2020-2021] Hewlett Packard Enterprise Development LP
+# (C) Copyright [2021] Hewlett Packard Enterprise Development LP
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -51,7 +51,7 @@ def checkRedfishSystemsProcessorsCPU(bmcName, cpuURI):
     if payload:
         mResponse = json.loads(payload)
         for check in cpuURIs:
-            badResults += validateField(fname, path,
+            badResults += validateField(fname, cpuURI,
                                 check[FIELD], mResponse, check[TYPE])
     else:
         printError(fname)
@@ -78,7 +78,7 @@ def checkRedfishSystemsProcessors(bmcName, procURI):
         mResponse = json.loads(payload)
 
         for check in memoryURIs:
-            badResults += validateField(fname, path,
+            badResults += validateField(fname, procURI,
                                     check[FIELD], mResponse, check[TYPE])
             if check[FIELD] == "Members" and check[FIELD] in mResponse:
                 for member in mResponse[check[FIELD]]:
@@ -116,7 +116,7 @@ def checkRedfishSystemsMemoryDimms(bmcName, dimmURI):
         if "Status" in mResponse:
             if mResponse["Status"]["State"] != "Absent":
                 for check in dimmURIs:
-                    badResults += validateField(fname, path,
+                    badResults += validateField(fname, dimmURI,
                                         check[FIELD], mResponse, check[TYPE])
             else:
                 printInfo(fname)
@@ -146,7 +146,7 @@ def checkRedfishSystemsMemory(bmcName, memURI):
         mResponse = json.loads(payload)
 
         for check in memoryURIs:
-            badResults += validateField(fname, path,
+            badResults += validateField(fname, memURI,
                                     check[FIELD], mResponse, check[TYPE])
             if check[FIELD] == "Members" and check[FIELD] in mResponse:
                 for member in mResponse[check[FIELD]]:
@@ -211,7 +211,7 @@ def checkRedfishSystems(bmcName):
         mResponse = json.loads(payload)
 
         for check in systemsURIs:
-            badResults += validateField(fname, path,
+            badResults += validateField(fname, member["@odata.id"],
                                     check[FIELD], mResponse, check[TYPE])
             if check[FIELD] == "Memory" and check[FIELD] in mResponse:
                 badResults += checkRedfishSystemsMemory(bmcName,
