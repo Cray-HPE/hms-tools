@@ -24,28 +24,28 @@ from utils.debug import dbgPrint, dbgLow
 
 def printOK(msg):
     r""" printOK(msg) - Prints the message with an OK """
-    dbgPrint(dbgLow, "\033[1;32m%-40s\tOK\033[0m" % msg)
+    dbgPrint(dbgLow, "\033[1;32m%-50s\tOK\033[0m" % msg)
 
 def printWarning(msg):
     r""" printWarning(msg) - Prints the message with a Warning"""
-    print("\033[1;33m%-40s\tWarning\033[0m" % msg)
+    print("\033[1;33m%-50s\tWarning\033[0m" % msg)
 
 def printExtraWarning(label, msg):
     r""" printExtraWarning(label, msg) - Prints a label and then the message """
-    dbgPrint(dbgLow, "\033[1;33m%40s\t%s\033[0m" % (label, msg))
+    dbgPrint(dbgLow, "\033[1;33m%50s\t%s\033[0m" % (label, msg))
 
 def printError(msg):
     r""" printNotHealthy(msg) - Prints the message with a Error"""
-    print("\033[1;31m%-40s\tError\033[0m" % msg)
+    print("\033[1;31m%-50s\tError\033[0m" % msg)
 
 def printExtraError(label, msg):
     r""" printExtraHealth(label, msg) - Prints a label and then the message """
-    dbgPrint(dbgLow, "\033[1;31m%40s\t%s\033[0m" % (label, msg))
+    dbgPrint(dbgLow, "\033[1;31m%50s\t%s\033[0m" % (label, msg))
 
 def printInfo(msg):
     r""" printInfo(msg) - Prints the message with a Info"""
-    print("\033[1;35m%-40s\tInfo\033[0m" % msg)
+    print("\033[1;35m%-50s\tInfo\033[0m" % msg)
 
 def printExtraInfo(label, msg):
     r""" printExtraInfo(label, msg) - Prints a label and then the message """
-    dbgPrint(dbgLow, "\033[1;35m%40s\t%s\033[0m" % (label, msg))
+    dbgPrint(dbgLow, "\033[1;35m%50s\t%s\033[0m" % (label, msg))

@@ -129,16 +129,21 @@ def validateField(name, path, field, data, dType):
         if fType is not dType:
             printError(name)
             printExtraError(field,
-                "is a " + fType.__name__ + " not a " + dType.__name__)
+                "Is a " + fType.__name__ + " not a " + dType.__name__)
             return 1
         if fType is dict or fType is str:
             if len(data[field]) == 0:
                 printWarning(name)
-                printExtraWarning(path + " ." + field, "zero length or empty")
+                printExtraWarning(path + " ." + field, "Zero length or empty")
+                return 1
+        if fType is int:
+            if data[field] == 0:
+                printWarning(name)
+                printExtraWarning(path + " ." + field, "Is zero")
                 return 1
     else:
         printWarning(name)
-        printExtraWarning(path + " ." + field, "missing")
+        printExtraWarning(path + " ." + field, "Missing")
         return 1
     
     return 0

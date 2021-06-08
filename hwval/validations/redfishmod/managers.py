@@ -2,7 +2,7 @@
 
 # MIT License
 #
-# (C) Copyright [2020-2021] Hewlett Packard Enterprise Development LP
+# (C) Copyright [2021] Hewlett Packard Enterprise Development LP
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -69,8 +69,9 @@ def checkRedfishManagers(bmcName):
         mResponse = json.loads(payload)
 
         for check in managerURIs:
-            badResults += validateField("checkRedfishManagers", path,
-                                    check[FIELD], mResponse, check[TYPE])
+            badResults += validateField("checkRedfishManagers",
+                                    member["@odata.id"], check[FIELD],
+                                    mResponse, check[TYPE])
 
     if badResults == 0:
         printOK("checkRedfishManagers")

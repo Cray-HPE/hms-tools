@@ -2,7 +2,7 @@
 
 # MIT License
 #
-# (C) Copyright [2020-2021] Hewlett Packard Enterprise Development LP
+# (C) Copyright [2021] Hewlett Packard Enterprise Development LP
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -31,7 +31,6 @@ from utils.health import printError, printExtraError
 from utils.redfish import makeRedfishCall, validateField, FIELD, TYPE
 
 chassisURIs = [
-    ["AssetTag", str],
     ["SerialNumber", str],
     ["Power", dict],
     ["PartNumber", str],
@@ -76,8 +75,9 @@ def checkRedfishChassis(bmcName):
             (mResponse["ChassisType"] == "Enclosure" or
              mResponse["ChassisType"] == "RackMount")):
             for check in chassisURIs:
-                badResults += validateField("checkRedfishChassis", path,
-                                        check[FIELD], mResponse, check[TYPE])
+                badResults += validateField("checkRedfishChassis",
+                                    member["@odata.id"], check[FIELD],
+                                    mResponse, check[TYPE])
         else:
             printInfo("checkRedfishChassis")
             printExtraInfo("Skipping "+member["@odata.id"],
