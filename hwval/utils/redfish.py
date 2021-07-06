@@ -96,7 +96,7 @@ def convertXnameToBMCName(xname):
     bmcName = xname
 
     m = re.search( # contains nC name OR is sC name OR is cC name
-            'x[0-9]+c[0-7]s[0-9]+b[0-1]$|x[0-9]+c[0-7]r[0-9]+b[0-1]$|x[0-9]+c[0-7]b[0-1]$',
+            'x[0-9]+c[0-7]s[0-9]+b[0-9]+$|x[0-9]+c[0-7]r[0-9]+b[0-9]+$|x[0-9]+c[0-7]b[0-9]+$',
             xname)
 
     if m and m.group(0):
