@@ -173,7 +173,7 @@ def main():
     if failures == 0:
         print("All validations PASSED")
     else:
-        print("%d Validations had WARNINGS or ERROR" % failures)
+        print("%d Validations did not pass cleanly" % failures)
 
     print("Done")
 

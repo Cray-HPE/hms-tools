@@ -57,6 +57,12 @@ def makeRedfishCall(action, targPath, reqData=None):
                 }
         r = requests.post(url = targPath, headers = postHeaders, data = reqData,
                 auth = HTTPBasicAuth(rfUser, rfPass), verify = False)
+    elif action == "DELETE":
+        deleteHeaders = {
+            'cache-control': 'no-cache',
+            }
+        r = requests.delete(url = targPath, headers = deleteHeaders,
+                auth = HTTPBasicAuth(rfUser, rfPass), verify = False)
     else:
         return None, "Redfish Operation", "Bad Request"
 
@@ -64,6 +70,9 @@ def makeRedfishCall(action, targPath, reqData=None):
     dbgPrint(dbgHigh, "makeRedfishCall %s Response: %s" % (action, r.text))
 
     ret = r.text
+    if not ret:
+        ret = r.status_code
+
     label = ""
     msg = ""
 
@@ -73,7 +82,7 @@ def makeRedfishCall(action, targPath, reqData=None):
         ret = None
     elif r.status_code >= 400:
         label = targPath
-        msg = "Bad Request"
+        msg = "Bad Request (%d)" % r.status_code
         ret = None
     elif r.status_code >= 300:
         label = "Redfish"
@@ -87,7 +96,7 @@ def convertXnameToBMCName(xname):
     bmcName = xname
 
     m = re.search( # contains nC name OR is sC name OR is cC name
-            'x[0-9]+c[0-7]s[0-9]+b0|x[0-9]+c[0-7]r[0-9]+b0$|x[0-9]+c[0-7]b0$',
+            'x[0-9]+c[0-7]s[0-9]+b[0-9]+$|x[0-9]+c[0-7]r[0-9]+b[0-9]+$|x[0-9]+c[0-7]b[0-9]+$',
             xname)
 
     if m and m.group(0):
