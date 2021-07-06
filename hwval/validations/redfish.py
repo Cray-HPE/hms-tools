@@ -36,11 +36,12 @@ from .redfishmod.event_service import checkRedfishEventService
 from .redfishmod.telemetry_poll import telemetryPoll
 from .redfishmod.systems import checkRedfishSystems
 from .redfishmod.update_service import checkRedfishUpdateService
+from .redfishmod.event import eventSubscribe, eventTest, eventDelete
 
 validations = [
-    #eventSubscribe,
-    #eventTest,
-    #eventDelete,
+    eventSubscribe,
+    eventTest,
+    eventDelete,
     checkRedfishURIs,
     checkRedfishChassis,
     checkRedfishManagers,
