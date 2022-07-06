@@ -1,6 +1,6 @@
 # MIT License
 #
-# (C) Copyright [2020-2021] Hewlett Packard Enterprise Development LP
+# (C) Copyright [2020-2022] Hewlett Packard Enterprise Development LP
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -41,7 +41,7 @@ def nidsToXnames(nidlist):
     for n in nidlist.split(','):
         queryparams['nid'].append(int(n))
 
-    URL = "https://api-gw-service-nmn.local/apis/smd/hsm/v1/State/Components"
+    URL = "https://api-gw-service-nmn.local/apis/smd/hsm/v2/State/Components"
 
     dbgPrint(dbgMed, "POST: %s %s" % (URL, queryparams))
     dbgPrint(dbgHigh, "POST: %s" % getHeaders)

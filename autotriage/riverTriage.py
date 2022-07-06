@@ -2,7 +2,7 @@
 
 # MIT License
 #
-# (C) Copyright [2020] Hewlett Packard Enterprise Development LP
+# (C) Copyright [2020-2022] Hewlett Packard Enterprise Development LP
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -135,7 +135,7 @@ def checkForNodeDiscovery(nList, auth_token):
             }
 
     for n in nList:
-        URL = "https://api-gw-service-nmn.local/apis/smd/hsm/v1/State/Components/" + n
+        URL = "https://api-gw-service-nmn.local/apis/smd/hsm/v2/State/Components/" + n
         r = requests.get(url = URL, headers = getHeaders)
         if r.status_code >= 500:
             printNotHealthy(n)
