@@ -24,6 +24,10 @@ Fixed - for any bug fixes
 Security - in case of vulnerabilities
 -->
 
+## [1.1.0] - 2021-07-06
+### Changed
+- Changed HSM v1 API references to v2
+
 ## [0.7.0] - 2021-03-18
 ### Added
 - Checked polling telemetry locations in Redfish
