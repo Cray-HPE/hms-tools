@@ -8,6 +8,7 @@ is not necessarily connected to a Shasta system.
 ## Usage
 ### Setup
 BMC=<hostname or IP>
+LISTENIP=<IP address the BMC can POST to on the test server>
 read -s PASSWD
 
 ### Power Capping
@@ -38,7 +39,7 @@ events. Errors will be indicated if a Redfish event is received but the node
 does not make it to the target power state.
 
 ```
-python test_power_control.py -i 10.254.1.26 -r 45910 -b $BMC -u root -p $PASSWD
+python test_power_control.py -i $LISTENIP -r 45910 -b $BMC -u root -p $PASSWD
 if [ $? == 1 ]; then
     echo "Power control validation failed."
 fi
@@ -54,7 +55,7 @@ This test is expected to fail on all River management, application, and
 compute servers.
 
 ```
-python test_streaming_telemetry.py -i 10.254.1.26 -r 45910 -b $BMC -u root -p $PASSWD
+python test_streaming_telemetry.py -i $LISTENIP -r 45910 -b $BMC -u root -p $PASSWD
 if [ $? == 1 ]; then
     echo "Streaming telemetry validation failed."
 fi
