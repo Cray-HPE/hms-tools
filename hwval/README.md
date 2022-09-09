@@ -1,3 +1,5 @@
+DEPRECATED
+
 # Hardware Validation Tool
 
 This tool assists the Hardware Management Services team by using kubernetes and
