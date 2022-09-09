@@ -1,3 +1,5 @@
+DEPRECATED
+
 # Autotriage utility
 
 This tool assists the Hardware Management Services team by using kubernetes and
