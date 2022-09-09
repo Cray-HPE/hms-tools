@@ -525,18 +525,6 @@ def main():
         print("%s: %s" % (__file__, VERSION))
         return 0
 
-    # getPowerCappingInformation
-    #     URIs to PATCH to
-    #     Determine payload layout
-    #     Is capping enabled? Olympus, GB, HPE DL have Redfish ways to enable, HPE Apollo 6500?
-    #     Min and max values for cap
-    #     Current value for cap
-    #     GPUs for Olympus
-    # setPowerCap
-    #     Set power limit to max-100
-    # checkPowerCap
-    # restorePowerCap
-
     path = getChassisPath(args)
 
     if path is None:

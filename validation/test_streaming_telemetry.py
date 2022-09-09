@@ -254,10 +254,10 @@ def main():
     ret = 1
     print("Waiting for streaming telemetry.")
     if event.wait(timeout=30):
-        print("Telemetry streaming is successful.")
+        print("PASS: Telemetry streaming is successful.")
         ret = 0
     else:
-        print("Did not receive streaming telemetry in the alloted time.")
+        print("FAIL: Did not receive streaming telemetry in the alloted time.")
 
     rsp = eventDelete(args)
     if rsp != 0:
