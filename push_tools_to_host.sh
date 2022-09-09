@@ -2,7 +2,7 @@
 #
 # MIT License
 #
-# (C) Copyright [2021] Hewlett Packard Enterprise Development LP
+# (C) Copyright [2021-2022] Hewlett Packard Enterprise Development LP
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -60,6 +60,5 @@ fi
 
 set -e
 
-rsync -avzh autotriage root@${host}:/tmp/hms-tools
-rsync -avzh hwval root@${host}:/tmp/hms-tools
+rsync -avzh validation root@${host}:/tmp/hms-tools
 
