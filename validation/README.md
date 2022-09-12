@@ -7,10 +7,11 @@ is not necessarily connected to a Shasta system.
 
 ## Usage
 ### Setup
+```
 BMC=<hostname or IP>
 LISTENIP=<IP address the BMC can POST to on the test server>
 read -s PASSWD
-
+```
 ### Power Capping
 Perform a sequence of calls that will enable power capping, query the current
 power capping information, set the power cap to Max-100, validate the power cap
