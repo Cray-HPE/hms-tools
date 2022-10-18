@@ -51,7 +51,7 @@ import json
 import requests
 import urllib3
 
-VERSION="1.0.0"
+VERSION="1.0.1"
 
 
 def makeRedfishCall(args, action, targPath, reqData=None):
