@@ -91,15 +91,17 @@ def makeRedfishCall(args, action, targPath, reqData=None):
     elif action == "DELETE":
         r = requests.delete(url = targPath, auth = auth, verify = False)
     elif action == "PATCH":
-        rsp = requests.get(url = targPath, auth = auth, headers = headers,
-                verify = False)
+        # Olympus nodes don't need the etag for the PATCH
+        if ".Deep" not in targPath:
+            rsp = requests.get(url = targPath, auth = auth, headers = headers,
+                    verify = False)
 
-        if rsp.status_code >= 300:
-            print("Redfish call to get power structure failed for %s." % targPath)
-            return None
+            if rsp.status_code >= 300:
+                print("Redfish call to get power structure failed for %s." % targPath)
+                return None
 
-        power = json.loads(rsp.text)
-        headers['If-Match'] = power['@odata.etag']
+            power = json.loads(rsp.text)
+            headers['If-Match'] = power['@odata.etag']
 
         r = requests.patch(url = targPath, auth = auth, headers = headers,
                 data = reqData, verify = False)
