@@ -2,7 +2,7 @@
 
 # MIT License
 #
-# (C) Copyright [2022] Hewlett Packard Enterprise Development LP
+# (C) Copyright [2022-2023] Hewlett Packard Enterprise Development LP
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -53,12 +53,17 @@ Misc Variables:
     httpThread
 """
 
-#pylint: disable=C0103
-#pylint: disable=W0603,W0621
-#pylint: disable=R0201,R0912,R0915
+# pylint: disable=invalid-name
+# pylint: disable=global-statement
+# pylint: disable=global-variable-not-assigned
+# pylint: disable=deprecated-method
 
-import argparse
+from datetime import datetime
+
+import os
 import sys
+import argparse
+import logging
 import threading
 from http.server import HTTPServer, BaseHTTPRequestHandler
 import ssl
@@ -67,7 +72,21 @@ import time
 import requests
 import urllib3
 
-VERSION="1.0.0"
+VERSION="1.1.0"
+
+my_logger = logging.getLogger()
+my_logger.setLevel(logging.DEBUG)
+standard_out = logging.StreamHandler(sys.stdout)
+standard_out.setLevel(logging.INFO)
+my_logger.addHandler(standard_out)
+standard_err = logging.StreamHandler(sys.stderr)
+standard_err.setLevel(logging.ERROR)
+my_logger.addHandler(standard_err)
+
+VERBOSE1 = logging.INFO - 1
+VERBOSE2 = logging.INFO - 2
+logging.addLevelName(VERBOSE1, "VERBOSE1")
+logging.addLevelName(VERBOSE2, "VERBOSE2")
 
 event = threading.Event()
 
@@ -78,8 +97,6 @@ class handleRequest(BaseHTTPRequestHandler):
         global event
         event.set()
 
-httpd = None
-httpThread = None
 
 def makeRedfishCall(args, action, targPath, reqData=None):
     """
@@ -111,12 +128,12 @@ def makeRedfishCall(args, action, targPath, reqData=None):
 
     if action == "GET":
         r = requests.get(url = targPath, auth = auth, headers = headers,
-                verify = False)
+                verify = False, timeout = 30)
     elif action == "POST":
         r = requests.post(url = targPath, auth = auth, headers = headers,
-                data = reqData, verify = False)
+                data = reqData, verify = False, timeout = 30)
     elif action == "DELETE":
-        r = requests.delete(url = targPath, auth = auth, verify = False)
+        r = requests.delete(url = targPath, auth = auth, verify = False, timeout = 30)
     else:
         return None
 
@@ -126,7 +143,8 @@ def makeRedfishCall(args, action, targPath, reqData=None):
         json_body = r.status_code
 
     if r.status_code >= 300:
-        print("Redfish call returned %d." % r.status_code)
+        my_logger.error("Redfish call returned %d.", r.status_code)
+        my_logger.error("Redfish %s for %s returned %d.", action, targPath, r.status_code)
         json_body = None
 
     return json_body
@@ -142,11 +160,11 @@ def getFirstNodePath(args):
     Returns:
         path (string): URI of the first node found in Systems collection
     """
-    print("Finding node to use for test.")
-    path = "https://%s/redfish/v1/Systems" % args.bmc
+    my_logger.info("Finding node to use for test.")
+    path = f"https://{args.bmc}/redfish/v1/Systems"
     rsp = makeRedfishCall(args, "GET", path)
     if not rsp:
-        print("Redfish call to get Systems failed.")
+        my_logger.warning("Redfish call to get Systems failed.")
         return None
 
     sysCollection = json.loads(rsp)
@@ -165,12 +183,12 @@ def turnNodeOff(args, nPath):
         args (object): Command line arguments.
         nPath (string): Systems URI for target node.
     """
-    print("Turning node at %s Off." % nPath)
-    path = "https://%s%s" % (args.bmc, nPath)
+    my_logger.info("Turning node at %s Off.", nPath)
+    path = f"https://{args.bmc}{nPath}"
     rsp = makeRedfishCall(args, "GET", path)
 
     if not rsp:
-        print("Redfish call to get computer system information for %s failed." % nPath)
+        my_logger.warning("Redfish call to get computer system information for %s failed.", nPath)
         return
 
     compSystem = json.loads(rsp)
@@ -181,11 +199,11 @@ def turnNodeOff(args, nPath):
         aVals = compSysReset['ResetType@Redfish.AllowableValues']
     elif "@Redfish.ActionInfo" in compSysReset:
         aiPath = compSysReset['@Redfish.ActionInfo']
-        path = "https://%s%s" % (args.bmc, aiPath)
+        path = f"https://{args.bmc}{aiPath}"
         rsp = makeRedfishCall(args, "GET", path)
 
         if not rsp:
-            print("Redfish call to get ActionInfo for %s failed." % aiPath)
+            my_logger.warning("Redfish call to get ActionInfo for %s failed.", aiPath)
             return
 
         resetActionInfo = json.loads(rsp)
@@ -204,18 +222,18 @@ def turnNodeOff(args, nPath):
                 resetType = "Off"
 
     if resetType is None:
-        print("Could not determine ResetType for power Off.")
+        my_logger.warning("Could not determine ResetType for power Off.")
         return
 
     reset = {
             'ResetType': resetType,
             }
 
-    path = "https://%s%s" % (args.bmc, compSysReset['target'])
+    path = f"https://{args.bmc}{compSysReset['target']}"
     rsp = makeRedfishCall(args, "POST", path, json.dumps(reset))
 
     if not rsp:
-        print("Redfish call to perform Off power action failed.")
+        my_logger.warning("Redfish call to perform Off power action failed.")
 
 def forceNodeOff(args, nPath):
     """
@@ -225,12 +243,12 @@ def forceNodeOff(args, nPath):
         args (object): Command line arguments.
         nPath (string): Systems URI for target node.
     """
-    print("Forcing node at %s Off." % nPath)
-    path = "https://%s%s" % (args.bmc, nPath)
+    my_logger.info("Forcing node at %s Off.", nPath)
+    path = f"https://{args.bmc}{nPath}"
     rsp = makeRedfishCall(args, "GET", path)
 
     if not rsp:
-        print("Redfish call to get computer system information for %s failed." % nPath)
+        my_logger.warning("Redfish call to get computer system information for %s failed.", nPath)
         return
 
     compSystem = json.loads(rsp)
@@ -240,11 +258,11 @@ def forceNodeOff(args, nPath):
             'ResetType': 'ForceOff',
             }
 
-    path = "https://%s%s" % (args.bmc, compSysReset['target'])
+    path = f"https://{args.bmc}{compSysReset['target']}"
     rsp = makeRedfishCall(args, "POST", path, json.dumps(reset))
 
     if not rsp:
-        print("Redfish call to perform force Off power action failed.")
+        my_logger.warning("Redfish call to perform force Off power action failed.")
 
 
 def turnNodeOn(args, nPath):
@@ -255,12 +273,12 @@ def turnNodeOn(args, nPath):
         args (object): Command line arguments.
         nPath (string): Systems URI for target node.
     """
-    print("Turning node at %s On." % nPath)
-    path = "https://%s%s" % (args.bmc, nPath)
+    my_logger.info("Turning node at %s On.", nPath)
+    path = f"https://{args.bmc}{nPath}"
     rsp = makeRedfishCall(args, "GET", path)
 
     if not rsp:
-        print("Redfish call to get computer system information for %s failed." % nPath)
+        my_logger.warning("Redfish call to get computer system information for %s failed.", nPath)
         return
 
     compSystem = json.loads(rsp)
@@ -270,11 +288,11 @@ def turnNodeOn(args, nPath):
             'ResetType': 'On',
             }
 
-    path = "https://%s%s" % (args.bmc, compSysReset['target'])
+    path = f"https://{args.bmc}{compSysReset['target']}"
     rsp = makeRedfishCall(args, "POST", path, json.dumps(reset))
 
     if not rsp:
-        print("Redfish call to perform On power action failed.")
+        my_logger.warning("Redfish call to perform On power action failed.")
 
 
 def getPowerState(args, nPath):
@@ -288,11 +306,11 @@ def getPowerState(args, nPath):
     Returns:
         state (string): Power state of the node.
     """
-    path = "https://%s%s" % (args.bmc, nPath)
+    path = f"https://{args.bmc}{nPath}"
     rsp = makeRedfishCall(args, "GET", path)
 
     if not rsp:
-        print("Redfish call to get computer system information for %s failed." % nPath)
+        my_logger.warning("Redfish call to get computer system information for %s failed.", nPath)
         return None
 
     compSystem = json.loads(rsp)
@@ -330,10 +348,8 @@ def startRedfishEventServer(args, scheme):
         args (object): Command line arguments.
         scheme (string): Secure or unsecure http protocol.
     """
-    global httpd
-    global httpThread
-
-    print("Starting %s Redfish event server." % scheme)
+    my_logger.info("Starting %s Redfish event server.", scheme)
+    my_logger.info("ip %s port %s", args.ip, args.port)
     httpd = HTTPServer((args.ip, int(args.port)), handleRequest)
     if scheme == "https":
         httpd.socket = ssl.wrap_socket(httpd.socket, certfile="cert/tls.crt",
@@ -344,7 +360,7 @@ def startRedfishEventServer(args, scheme):
             httpd.serve_forever()
 
     httpThread = threading.Thread(target=serve_forever, args=(httpd,))
-    httpThread.setDaemon(True)
+    httpThread.daemon = True
     httpThread.start()
 
 
@@ -359,23 +375,23 @@ def eventSubscribe(args, scheme):
     Returns:
         result (int): 0 for success, 1 for failure
     """
-    print("Subscribing to Redfish events with %s." % scheme)
+    my_logger.info("Subscribing to Redfish events with %s.", scheme)
     eventTypes = ["StatusChange", "Alert", "ResourceUpdated", "ResourceAdded", "ResourceRemoved"]
-    destination = "%s://%s:%s/%s" % (scheme, args.ip, args.port, args.bmc)
+    destination = f"{scheme}://{args.ip}:{args.port}/{args.bmc}"
 
     sub = {
-        'Context': "PowerTest-%s-PowerTest" % args.bmc,
+        'Context': f"PowerTest-{args.bmc}-PowerTest",
         'Destination': destination,
         'Protocol': 'Redfish',
         'EventTypes': eventTypes,
     }
 
-    path = "https://%s/redfish/v1/EventService/Subscriptions" % args.bmc
+    path = f"https://{args.bmc}/redfish/v1/EventService/Subscriptions"
 
     rsp = makeRedfishCall(args, "POST", path, json.dumps(sub))
 
     if not rsp:
-        print("Redfish call to create subscription failed.")
+        my_logger.warning("Redfish call to create subscription failed.")
         return 1
 
     return 0
@@ -391,13 +407,13 @@ def eventDelete(args):
     Returns:
         result (int): 0 for success, 1 for failure
     """
-    print("Deleting subscriptions created by this test.")
-    path = "https://%s/redfish/v1/EventService/Subscriptions" % args.bmc
+    my_logger.info("Deleting subscriptions created by this test.")
+    path = f"https://{args.bmc}/redfish/v1/EventService/Subscriptions"
 
     rsp = makeRedfishCall(args, "GET", path)
 
     if not rsp:
-        print("Redfish call to list subscriptions failed.")
+        my_logger.warning("Redfish call to list subscriptions failed.")
         return 1
 
     subCollection = json.loads(rsp)
@@ -405,24 +421,24 @@ def eventDelete(args):
     count = 0
     for subEntry in subCollection['Members']:
         entry = subEntry['@odata.id']
-        path = "https://%s%s" % (args.bmc, entry)
+        path = f"https://{args.bmc}{entry}"
 
         rsp = makeRedfishCall(args, "GET", path)
 
         if not rsp:
-            print("Redfish call to get subscription entry %s failed." % entry)
+            my_logger.warning("Redfish call to get subscription entry %s failed.", entry)
             return 1
 
         sub = json.loads(rsp)
 
-        if (sub['Context'] == "PowerTest-%s-PowerTest" % args.bmc and
-                sub['Destination'] == "http://%s:%s/%s" % (args.ip, args.port, args.bmc)):
+        if (sub['Context'] == f"PowerTest-{args.bmc}-PowerTest" and
+                sub['Destination'] == f"http://{args.ip}:{args.port}/{args.bmc}"):
             count += 1
 
             rsp = makeRedfishCall(args, "DELETE", path)
 
             if not rsp:
-                print("Redfish call to delete subscription entry %s failed." % entry)
+                my_logger.warning("Redfish call to delete subscription entry %s failed.", entry)
                 return 1
 
     return 0
@@ -439,8 +455,15 @@ def determineScheme(args):
     Returns:
         scheme (string): Secure or unsecure http protocol.
     """
-    print("Determining which http scheme to use.")
-    path = "https://%s/redfish/v1/Registries/iLO" % args.bmc
+    my_logger.info("Determining which http scheme to use.")
+    path = f"https://{args.bmc}/redfish/v1/Registries/iLO"
+
+    rsp = makeRedfishCall(args, "GET", path)
+
+    if rsp:
+        return "https"
+
+    path = f"https://{args.bmc}/redfish/v1/Registries/OpenBMC"
 
     rsp = makeRedfishCall(args, "GET", path)
 
@@ -449,7 +472,7 @@ def determineScheme(args):
 
     return "http"
 
-def main():
+def main(argslist=None):
     """Main program"""
     parser = argparse.ArgumentParser(description='Echo server.')
     parser.add_argument('-i', '--ip', help='IP address to listen on.')
@@ -457,68 +480,88 @@ def main():
     parser.add_argument('-b', '--bmc', help='BMC name or IP.')
     parser.add_argument('-u', '--user', help='Redfish user name.')
     parser.add_argument('-p', '--passwd', help='Redfish password.')
+    parser.add_argument('-v', '--verbose', action='store_true',
+                        help='Verbosity of tool in stdout')
     parser.add_argument('-V', '--version', action="store_true",
             help='Print the script version information and exit.')
-    args = parser.parse_args()
+    parser.add_argument('-l', '--logdir', default='./logs',
+            help='Directory for log files')
+    args = parser.parse_args(argslist)
+
+    # set logging file
+    standard_out.setLevel(logging.INFO - args.verbose if args.verbose < 3 else logging.DEBUG)
+
+    logpath = args.logdir
+
+    if not os.path.isdir(logpath):
+        os.makedirs(logpath)
+
+    fmt = logging.Formatter('%(levelname)s - %(message)s')
+    file_handler = logging.FileHandler(datetime.strftime(datetime.now(),
+        os.path.join(logpath, "PoweControlTest_%m_%d_%Y_%H%M%S.txt")))
+    file_handler.setLevel(min(logging.INFO if not args.verbose else
+        logging.DEBUG, standard_out.level))
+    file_handler.setFormatter(fmt)
+    my_logger.addHandler(file_handler)
 
     if args.version is True:
-        print("%s: %s" % (__file__, VERSION))
+        my_logger.info("%s: %s", __file__, VERSION)
         return 0
 
     scheme = determineScheme(args)
 
     rsp = eventSubscribe(args, scheme)
     if rsp != 0:
-        print("FAIL: Could not subscribe to Redfish event notifications.")
+        my_logger.error("FAIL: Could not subscribe to Redfish event notifications.")
         return 1
 
-    if httpd is None:
-        startRedfishEventServer(args, scheme)
+    startRedfishEventServer(args, scheme)
 
     nPath = getFirstNodePath(args)
     if nPath is None:
-        print("FAIL: No node found, cannot perform power actions.")
+        my_logger.error("FAIL: No node found, cannot perform power actions.")
         return 1
 
-    print("Using node %s." % nPath)
+    my_logger.info("Using node %s.", nPath)
 
     state = getPowerState(args, nPath)
     ret = 0
     if state is None:
-        print("FAIL: Could not query power state of target node %s." % nPath)
+        my_logger.error("FAIL: Could not query power state of target node %s.", nPath)
         ret = 1
 
     failures = 0
     if state == "On" and ret == 0:
-        print("Starting with node in the On state.")
+        my_logger.info("Starting with node in the On state.")
         turnNodeOff(args, nPath)
         notOff = True
         if event.wait(timeout=300):
             state = waitForState(args, nPath, "Off")
             if state == "Off":
-                print("PASS: Node properly turned Off.")
+                my_logger.info("PASS: Node properly turned Off.")
                 notOff = False
             else:
                 failures += 1
-                print("FAIL: Node sent Redfish event but is not Off.")
+                my_logger.error("FAIL: Node sent Redfish event but is not Off.")
         if notOff:
-            print("INFO: Node failed to turn Off in the alloted time, attempting force Off.")
+            my_logger.info("INFO: Node failed to turn Off in the alloted time,"
+                " attempting force Off.")
             forceNodeOff(args, nPath)
             if event.wait(timeout=60):
                 state = waitForState(args, nPath, "Off")
                 if state == "Off":
-                    print("PASS: Node was forced Off.")
+                    my_logger.info("PASS: Node was forced Off.")
                 else:
                     failures += 1
                     ret = 1
-                    print("FAIL: Node sent Redfish event but is not Off.")
+                    my_logger.error("FAIL: Node sent Redfish event but is not Off.")
             else:
                 failures += 1
                 state = getPowerState(args, nPath)
                 if state == "Off":
-                    print("FAIL: Node turned Off but did not send a Redfish event.")
+                    my_logger.error("FAIL: Node turned Off but did not send a Redfish event.")
                 else:
-                    print("FAIL: Node failed to be forced Off in the alloted time.")
+                    my_logger.error("FAIL: Node failed to be forced Off in the alloted time.")
                     ret = 1
 
         if ret == 0:
@@ -527,72 +570,72 @@ def main():
             if event.wait(timeout=60):
                 state = waitForState(args, nPath, "On")
                 if state == "On":
-                    print("PASS: Node properly turned On.")
+                    my_logger.info("PASS: Node properly turned On.")
                 else:
                     failures += 1
                     ret = 1
-                    print("FAIL: Node sent Redfish event but is not On.")
+                    my_logger.error("FAIL: Node sent Redfish event but is not On.")
             else:
                 failures += 1
                 ret = 1
                 state = getPowerState(args, nPath)
                 if state == "On":
-                    print("FAIL: Node turned On but did not send a Redfish event.")
+                    my_logger.error("FAIL: Node turned On but did not send a Redfish event.")
                 else:
-                    print("FAIL: Node failed to turn On in the alloted time.")
+                    my_logger.error("FAIL: Node failed to turn On in the alloted time.")
 
     if state == "Off" and ret == 0:
-        print("Starting with node in the Off state.")
+        my_logger.info("Starting with node in the Off state.")
         turnNodeOn(args, nPath)
         if event.wait(timeout=60):
             state = waitForState(args, nPath, "On")
             if state == "On":
-                print("PASS: Node properly turned On.")
+                my_logger.info("PASS: Node properly turned On.")
             else:
                 failures += 1
                 ret = 1
-                print("FAIL: Node sent Redfish event but is not On.")
+                my_logger.error("FAIL: Node sent Redfish event but is not On.")
         else:
             failures += 1
             state = getPowerState(args, nPath)
             if state == "On":
-                print("FAIL: Node turned On but did not send a Redfish event.")
+                my_logger.error("FAIL: Node turned On but did not send a Redfish event.")
             else:
-                print("FAIL: Node failed to turn On in the alloted time.")
+                my_logger.error("FAIL: Node failed to turn On in the alloted time.")
                 ret = 1
 
         if ret == 0:
             time.sleep(30)
-            print("INFO: Attempting force Off.")
+            my_logger.info("INFO: Attempting force Off.")
             forceNodeOff(args, nPath)
             if event.wait(timeout=60):
                 state = waitForState(args, nPath, "Off")
                 if state == "Off":
-                    print("PASS: Node was forced Off.")
+                    my_logger.info("PASS: Node was forced Off.")
                 else:
                     failures += 1
                     ret = 1
-                    print("FAIL: Node sent Redfish event but is not Off.")
+                    my_logger.error("FAIL: Node sent Redfish event but is not Off.")
             else:
                 failures += 1
                 ret = 1
                 state = getPowerState(args, nPath)
                 if state == "Off":
-                    print("FAIL: Node turned Off but did not send a Redfish event.")
+                    my_logger.error("FAIL: Node turned Off but did not send a Redfish event.")
                 else:
-                    print("FAIL: Node failed to be forced Off in the alloted time.")
+                    my_logger.error("FAIL: Node failed to be forced Off in the alloted time.")
 
     rsp = eventDelete(args)
     if rsp != 0:
-        print("Failed to delete Redfish event notification subscription.")
+        my_logger.error("Failed to delete Redfish event notification subscription.")
         ret = 1
 
     if ret == 0:
-        print("SUCCESS: All tests passed.")
+        my_logger.info("SUCCESS: All tests passed.")
     elif failures > 0:
-        print("FAILED: There %s %d test failure%s." %
-                (("was" if failures == 1 else "were"), failures,
-                    ("s" if failures > 1 else "")))
+        my_logger.error("FAILED: There %s %d test failure%s.",
+                ("was" if failures == 1 else "were"), failures,
+                    ("s" if failures > 1 else ""))
 
     return ret
 
