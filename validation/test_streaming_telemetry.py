@@ -2,7 +2,7 @@
 
 # MIT License
 #
-# (C) Copyright [2022] Hewlett Packard Enterprise Development LP
+# (C) Copyright [2022-2024] Hewlett Packard Enterprise Development LP
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -41,23 +41,49 @@ Functions:
 
 Misc Variables:
     event
-    httpd
     httpThread
 """
 
-#pylint: disable=C0103
-#pylint: disable=W0603,W0621
-#pylint: disable=R0201
+# pylint: disable=line-too-long
+# pylint: disable=invalid-name
+# pylint: disable=global-statement
+# pylint: disable=missing-docstring
+# pylint: disable=broad-except
+# pylint: disable=too-many-nested-blocks
+# pylint: disable=too-many-locals
+# pylint: disable=too-many-boolean-expressions
+# pylint: disable=too-many-statements
+# pylint: disable=too-many-return-statements
+# pylint: disable=too-many-branches
+# pylint: disable=global-variable-not-assigned
 
-import argparse
+from datetime import datetime
+
+import os
 import sys
+import argparse
+import logging
 import threading
 from http.server import HTTPServer, BaseHTTPRequestHandler
 import json
 import requests
 import urllib3
 
-VERSION="1.0.0"
+VERSION="1.1.0"
+
+my_logger = logging.getLogger()
+my_logger.setLevel(logging.DEBUG)
+standard_out = logging.StreamHandler(sys.stdout)
+standard_out.setLevel(logging.INFO)
+my_logger.addHandler(standard_out)
+standard_err = logging.StreamHandler(sys.stderr)
+standard_err.setLevel(logging.ERROR)
+my_logger.addHandler(standard_err)
+
+VERBOSE1 = logging.INFO - 1
+VERBOSE2 = logging.INFO - 2
+logging.addLevelName(VERBOSE1, "VERBOSE1")
+logging.addLevelName(VERBOSE2, "VERBOSE2")
 
 event = threading.Event()
 
@@ -67,9 +93,6 @@ class handleRequest(BaseHTTPRequestHandler):
         """Handler for POSTs from Redfish endpoint."""
         global event
         event.set()
-
-httpd = None
-httpThread = None
 
 def makeRedfishCall(args, action, targPath, reqData=None):
     """
@@ -101,12 +124,13 @@ def makeRedfishCall(args, action, targPath, reqData=None):
 
     if action == "GET":
         r = requests.get(url = targPath, auth = auth, headers = headers,
-                verify = False)
+                verify = False, timeout = 30)
     elif action == "POST":
         r = requests.post(url = targPath, auth = auth, headers = headers,
-                data = reqData, verify = False)
+                data = reqData, verify = False, timeout = 30)
     elif action == "DELETE":
-        r = requests.delete(url = targPath, auth = auth, verify = False)
+        r = requests.delete(url = targPath, auth = auth, verify = False,
+                timeout = 30)
     else:
         return None, "Redfish Operation", "Bad Request"
 
@@ -116,7 +140,7 @@ def makeRedfishCall(args, action, targPath, reqData=None):
         json_body = r.status_code
 
     if r.status_code >= 300:
-        print("Redfish call returned %d" % r.status_code)
+        my_logger.error("Redfish call returned %d", r.status_code)
         json_body = None
 
     return json_body
@@ -129,20 +153,15 @@ def startRedfishEventServer(args):
     Parameters:
         args (object): Command line arguments.
     """
-    global httpd
-    global httpThread
-
-    print("Starting Redfish event server.")
-    httpd = HTTPServer((args.ip, int(args.port)), handleRequest)
-    #httpd.socket = ssl.wrap_socket(httpd.socket, certfile="cert/tls.crt",
-    #                                keyfile="cert/tls.key", server_side=True)
+    my_logger.info("Starting Redfish event server.")
+    httpd = HTTPServer(('', int(args.port)), handleRequest)
 
     def serve_forever(httpd):
         with httpd:
             httpd.serve_forever()
 
     httpThread = threading.Thread(target=serve_forever, args=(httpd,))
-    httpThread.setDaemon(True)
+    httpThread.daemon = True
     httpThread.start()
 
 
@@ -156,25 +175,25 @@ def eventSubscribe(args):
     Returns:
         success/failure (int): 0 for success, 1 for failure
     """
-    print("Subscribing to CrayTelemetry event")
+    my_logger.info("Subscribing to CrayTelemetry event")
     registryPrefixes = ["CrayTelemetry"]
     eventTypes = ["StatusChange"]
-    destination = "http://%s:%s" % (args.ip, args.port)
+    destination = f"http://{args.ip}:{args.port}"
 
     sub = {
-        'Context': "TelemetryTest-%s-TelemetryTest" % args.bmc,
+        'Context': f"TelemetryTest-{args.bmc}-TelemetryTest",
         'Destination': destination,
         'Protocol': 'Redfish',
         'RegistryPrefixes': registryPrefixes,
         'EventTypes': eventTypes,
     }
 
-    path = "https://%s/redfish/v1/EventService/Subscriptions" % args.bmc
+    path = f"https://{args.bmc}/redfish/v1/EventService/Subscriptions"
 
     rsp = makeRedfishCall(args, "POST", path, json.dumps(sub))
 
     if not rsp:
-        print("Redfish call to create subscription failed.")
+        my_logger.error("Redfish call to create subscription failed.")
         return 1
 
     return 0
@@ -190,13 +209,13 @@ def eventDelete(args):
     Returns:
         success/failure (int): 0 for success, 1 for failure
     """
-    print("Deleting subscriptions created by this test.")
-    path = "https://%s/redfish/v1/EventService/Subscriptions" % args.bmc
+    my_logger.info("Deleting subscriptions created by this test.")
+    path = f"https://{args.bmc}/redfish/v1/EventService/Subscriptions"
 
     rsp = makeRedfishCall(args, "GET", path)
 
     if not rsp:
-        print("Redfish call to list subscriptions failed.")
+        my_logger.error("Redfish call to list subscriptions failed.")
         return 1
 
     subCollection = json.loads(rsp)
@@ -204,64 +223,81 @@ def eventDelete(args):
     count = 0
     for subEntry in subCollection['Members']:
         entry = subEntry['@odata.id']
-        path = "https://%s%s" % (args.bmc, entry)
+        path = f"https://{args.bmc}{entry}"
 
         rsp = makeRedfishCall(args, "GET", path)
 
         if not rsp:
-            print("Redfish call to get subscription entry %s failed." % entry)
+            my_logger.error("Redfish call to get subscription entry %s failed.", entry)
             return 1
 
         sub = json.loads(rsp)
 
-        if (sub['Context'] == "TelemetryTest-%s-TelemetryTest" % args.bmc and
-                sub['Destination'] == "http://%s:%s" % (args.ip, args.port)):
+        if (sub['Context'] == "TelemetryTest-{args.bmc}-TelemetryTest" and
+                sub['Destination'] == f"http://{args.ip}:{args.port}"):
             count += 1
 
             rsp = makeRedfishCall(args, "DELETE", path)
 
             if not rsp:
-                print("Redfish call to delete subscription entry %s failed." % entry)
+                my_logger.error("Redfish call to delete subscription entry %s failed.", entry)
                 return 1
 
     return 0
 
 
-def main():
+def main(argslist=None):
     """Main program"""
-    parser = argparse.ArgumentParser(description='Echo server.')
-    parser.add_argument('-i', '--ip', help='IP address to listen on.')
-    parser.add_argument('-r', '--port', help='Port to listen on.')
-    parser.add_argument('-b', '--bmc', help='BMC name or IP.')
-    parser.add_argument('-u', '--user', help='Redfish user name.')
-    parser.add_argument('-p', '--passwd', help='Redfish password.')
+    parser = argparse.ArgumentParser(description='Streaming telemetry test')
+    parser.add_argument('-i', '--ip', help='IP address to listen on')
+    parser.add_argument('-r', '--port', help='Port to listen on')
+    parser.add_argument('-b', '--bmc', help='BMC name or IP')
+    parser.add_argument('-u', '--user', help='Redfish user name')
+    parser.add_argument('-p', '--passwd', help='Redfish password')
+    parser.add_argument('-v', '--verbose', action='store_true',
+                        help='Verbosity of tool in stdout')
     parser.add_argument('-V', '--version', action="store_true",
-            help='Print the script version information and exit.')
-    args = parser.parse_args()
+            help='Print the script version information and exit')
+    parser.add_argument('-l', '--logdir', default='./logs',
+            help='Directory for log files')
+    args = parser.parse_args(argslist)
+
+    # set logging file
+    standard_out.setLevel(logging.INFO - args.verbose if args.verbose < 3 else logging.DEBUG)
+
+    logpath = args.logdir
+
+    if not os.path.isdir(logpath):
+        os.makedirs(logpath)
+
+    fmt = logging.Formatter('%(levelname)s - %(message)s')
+    file_handler = logging.FileHandler(datetime.strftime(datetime.now(), os.path.join(logpath, "StreaingTelemetryTest_%m_%d_%Y_%H%M%S.txt")))
+    file_handler.setLevel(min(logging.INFO if not args.verbose else logging.DEBUG, standard_out.level))
+    file_handler.setFormatter(fmt)
+    my_logger.addHandler(file_handler)
 
     if args.version is True:
-        print("%s: %s" % (__file__, VERSION))
+        my_logger.info("%s: %s", __file__, VERSION)
         return 0
 
     rsp = eventSubscribe(args)
     if rsp != 0:
-        print("Failed to subscribe to streaming telemetry events.")
+        my_logger.error("Failed to subscribe to streaming telemetry events.")
         return 1
 
-    if httpd is None:
-        startRedfishEventServer(args)
+    startRedfishEventServer(args)
 
     ret = 1
-    print("Waiting for streaming telemetry.")
+    my_logger.info("Waiting for streaming telemetry.")
     if event.wait(timeout=30):
-        print("PASS: Telemetry streaming is successful.")
+        my_logger.info("PASS: Telemetry streaming is successful.")
         ret = 0
     else:
-        print("FAIL: Did not receive streaming telemetry in the alloted time.")
+        my_logger.error("FAIL: Did not receive streaming telemetry in the alloted time.")
 
     rsp = eventDelete(args)
     if rsp != 0:
-        print("Failed to delete streaming telemetry subscription.")
+        my_logger.error("Failed to delete streaming telemetry subscription.")
         ret = 1
 
     return ret
