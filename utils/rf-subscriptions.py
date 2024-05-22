@@ -82,7 +82,7 @@ CRAY_BMC = "Cray"
 GIGABYTE_BMC = "Gigabyte"
 HPE_BMC = "HPE"
 INTEL_BMC = "Intel"
-OPEN_BMC = "OpenBmc"
+OPEN_BMC = "OpenBmc" # Foxconn Paradise
 UNKNOWN_BMC = "Unknown"
 
 event = threading.Event()
